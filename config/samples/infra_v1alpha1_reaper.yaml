@@ -1,0 +1,12 @@
+apiVersion: infra.caseywylie.io/v1alpha1
+kind: Reaper
+metadata:
+  labels:
+    app.kubernetes.io/name: reaper
+    app.kubernetes.io/instance: reaper-sample
+    app.kubernetes.io/part-of: kubescrub-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kubescrub-operator
+  name: reaper-sample
+spec: {}
+  # TODO(user): Add fields here
