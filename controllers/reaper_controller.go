@@ -20,11 +20,11 @@ import (
 	"context"
 
 	infrav1alpha1 "github.com/cmwylie19/kubescrub-operator/api/v1alpha1"
-	"github.com/go-openapi/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -74,7 +74,7 @@ func (r *ReaperReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	kubescrub := &infrav1alpha1.Reaper{}
 	err := r.Get(ctx, req.NamespacedName, kubescrub)
 	if err != nil {
-		if errors.NotFound(err) {
+		if errors.IsNotFound(err) {
 			logger.Info("Reaper resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
@@ -85,7 +85,7 @@ func (r *ReaperReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Check if deployment already exists, if not create a new one
 	deploy := &appsv1.Deployment{}
 	err = r.Get(ctx, types.NamespacedName{Name: Name, Namespace: Namespace}, deploy)
-	if err != nil && errors.NotFound(err) {
+	if err != nil && errors.IsNotFound(err) {
 		// Define a new deployment
 		dep := r.deploymentForKubescrub(kubescrub)
 		logger.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
@@ -133,11 +133,22 @@ func (r *ReaperReconciler) ingressForKubescrub(k *infrav1alpha1.Reaper) *network
 						HTTP: &networkingv1.HTTPIngressRuleValue{
 							Paths: []networkingv1.HTTPIngressPath{
 								{
-									Path:     "/",
+									Path:     "/scrub",
 									PathType: &[]networkingv1.PathType{networkingv1.PathTypePrefix}[0],
 									Backend: networkingv1.IngressBackend{
 										Service: &networkingv1.IngressServiceBackend{
 											Name: Name,
+											Port: networkingv1.ServiceBackendPort{
+												Number: 8080,
+											},
+										},
+									},
+								}, {
+									Path:     "/",
+									PathType: &[]networkingv1.PathType{networkingv1.PathTypePrefix}[0],
+									Backend: networkingv1.IngressBackend{
+										Service: &networkingv1.IngressServiceBackend{
+											Name: Name + "-web",
 											Port: networkingv1.ServiceBackendPort{
 												Number: 8080,
 											},
@@ -179,6 +190,31 @@ func (r *ReaperReconciler) clusterRoleBindingForKubescrub(k *infrav1alpha1.Reape
 	ctrl.SetControllerReference(k, crb, r.Scheme)
 	return crb
 }
+func (r *ReaperReconciler) serviceForKubescrubWeb(k *infrav1alpha1.Reaper) *corev1.Service {
+	ls := labelsForKubescrub(k.Name + "-web")
+
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      Name + "-web",
+			Namespace: Namespace,
+			Labels:    ls,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{
+				{
+					Port: 8080,
+					TargetPort: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: 8080,
+					},
+				},
+			},
+			Selector: ls,
+		},
+	}
+	ctrl.SetControllerReference(k, svc, r.Scheme)
+	return svc
+}
 func (r *ReaperReconciler) serviceForKubescrub(k *infrav1alpha1.Reaper) *corev1.Service {
 	ls := labelsForKubescrub(k.Name)
 	svc := &corev1.Service{
@@ -190,7 +226,7 @@ func (r *ReaperReconciler) serviceForKubescrub(k *infrav1alpha1.Reaper) *corev1.
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
-					Port: 80,
+					Port: 8080,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: 8080,
@@ -233,6 +269,42 @@ func (r *ReaperReconciler) serviceAccountForKubescrub(k *infrav1alpha1.Reaper) *
 	}
 	ctrl.SetControllerReference(k, sa, r.Scheme)
 	return sa
+}
+func (r *ReaperReconciler) deploymentForKubescrubWeb(k *infrav1alpha1.Reaper) *appsv1.Deployment {
+	ls := labelsForKubescrub(k.Name + "-web")
+	replicas := int32(1)
+
+	dep := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      Name + "-web",
+			Namespace: Namespace,
+			Labels:    ls,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: ls,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: ls,
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Image:           "docker.io/caseywylie/kubescrub-ui:0.0.1",
+						ImagePullPolicy: corev1.PullAlways,
+						Name:            "kubescrub-web",
+						Ports: []corev1.ContainerPort{{
+							ContainerPort: 8080,
+							Name:          "http",
+						}},
+					}},
+				},
+			},
+		},
+	}
+	ctrl.SetControllerReference(k, dep, r.Scheme)
+	return dep
 }
 func (r *ReaperReconciler) deploymentForKubescrub(k *infrav1alpha1.Reaper) *appsv1.Deployment {
 	ls := labelsForKubescrub(k.Name)

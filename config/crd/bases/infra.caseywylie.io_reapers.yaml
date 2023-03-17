@@ -36,19 +36,15 @@ spec:
             description: ReaperSpec defines the desired state of Reaper
             properties:
               namespaces:
-                items:
-                  type: string
-                type: array
+                type: string
               poll:
-                default: true
-                type: boolean
+                default: "true"
+                type: string
               pollInterval:
-                default: 5
-                type: integer
+                default: "5"
+                type: string
               resources:
-                items:
-                  type: string
-                type: array
+                type: string
               theme:
                 default: dark
                 type: string
