@@ -2,13 +2,24 @@
 
 _This operator deploys the kubescrub application, wich consists of a React frontend and go backend developed over a few days, which makes educated predictions about whether resources are orphaned in Kubernetes._
 
+This operator deploys:
+- Ingress 
+- Frontend Deployment
+- Backend Deployment
+- Frontend Service
+- Backend Service
+- Service Account for backend (Needs permissions to look at resources)
+- ClusterRole for SA
+- ClusterRoleBinding for SA
+
 **TOC**
 
 
 - [Usage](#usage)
 - [Prereqs](#prereqs)
 - [Tutorial](#tutorial)
-
+- [Sites](#sites)
+- [Clean Up](#clean-up)
 ## Usage
 
 | Name         | Type   | Description                                                   | Values                                 | Optional                                               |
@@ -52,7 +63,11 @@ EOF
 Deploy the operator depedencies:
 
 ```bash
-
+make deploy
 ```
 
+_This will deploy the kubescrub operator and all of the depedencies, which include NGINX Ingress dependencies._
 
+## Sites
+
+-[NGINX Ingress](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)
