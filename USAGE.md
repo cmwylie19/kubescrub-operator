@@ -70,6 +70,8 @@ Wait for the operator's controller-manager deployment to become ready:
 
 ```bash
 kubectl wait --for=condition=Ready pod -l control-plane=controller-manager -n kubescrub-operator-system --timeout=180s
+
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/component=controller -n ingress-nginx --timeout=180s
 ```
 Set our context to the `kubescrub-operator-system` namespace
 

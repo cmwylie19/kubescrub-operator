@@ -489,7 +489,7 @@ func (r *ReaperReconciler) deploymentForKubescrub(k *infrav1alpha1.Reaper) *apps
 						}},
 					}},
 					RestartPolicy:      corev1.RestartPolicyAlways,
-					ServiceAccountName: Name,
+					ServiceAccountName: "kubescrub-operator-" + Name,
 				},
 			},
 		},
