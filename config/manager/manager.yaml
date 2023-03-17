@@ -804,3 +804,10 @@ subjects:
 - kind: ServiceAccount
   name: kubescrub-operator-ingress
   namespace: kubescrub-operator-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: null
+  name: kubescrub
+  namespace: system

@@ -76,11 +76,68 @@ func (r *ReaperReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err != nil {
 		if errors.IsNotFound(err) {
 			logger.Info("Reaper resource not found. Ignoring since object must be deleted")
-			return ctrl.Result{}, nil
+			// return ctrl.Result{}, nil
 		}
 		logger.Error(err, "Failed to get Reaper")
-		return ctrl.Result{}, err
+		// return ctrl.Result{}, err
 	}
+
+	// check on the service account resource
+	// sa := &corev1.ServiceAccount{}
+	// err = r.Get(ctx, types.NamespacedName{Name: Name, Namespace: Namespace}, sa)
+	// if err != nil && errors.IsNotFound(err) {
+	// 	// Define a new service account
+	// 	sa := r.serviceAccountForKubescrub(kubescrub)
+	// 	logger.Info("Creating a new Service Account", "ServiceAccount.Namespace", sa.Namespace, "ServiceAccount.Name", sa.Name)
+	// 	err = r.Create(ctx, sa)
+	// 	if err != nil {
+	// 		logger.Error(err, "Failed to create new Service Account", "ServiceAccount.Namespace", sa.Namespace, "ServiceAccount.Name", sa.Name)
+	// 		// return ctrl.Result{}, err
+	// 	}
+	// 	// Service Account created successfully - return and requeue
+	// 	return ctrl.Result{Requeue: true}, nil
+	// } else if err != nil {
+	// 	logger.Error(err, "Failed to get Service Account")
+	// 	// return ctrl.Result{}, err
+	// }
+
+	// check on the clusterrole resource
+	// cr := &rbacv1.ClusterRole{}
+	// err = r.Get(ctx, types.NamespacedName{Name: Name}, cr)
+	// if err != nil && errors.IsNotFound(err) {
+	// 	// Define a new clusterrole
+	// 	cr := r.clusterRoleForKubescrub(kubescrub)
+	// 	logger.Info("Creating a new Cluster Role", "ClusterRole.Name", cr.Name)
+	// 	err = r.Create(ctx, cr)
+	// 	if err != nil {
+	// 		logger.Error(err, "Failed to create new Cluster Role", "ClusterRole.Name", cr.Name)
+	// 		// return ctrl.Result{}, err
+	// 	}
+	// 	// Cluster Role created successfully - return and requeue
+	// 	return ctrl.Result{Requeue: true}, nil
+	// } else if err != nil {
+	// 	logger.Error(err, "Failed to get Cluster Role")
+	// 	// return ctrl.Result{}, err
+	// }
+
+	// // check on the clusterrolebinding resources
+	// crb := &rbacv1.ClusterRoleBinding{}
+	// err = r.Get(ctx, types.NamespacedName{Name: Name}, crb)
+	// if err != nil && errors.IsNotFound(err) {
+	// 	// Define a new clusterrolebinding
+	// 	crb := r.clusterRoleBindingForKubescrub(kubescrub)
+	// 	logger.Info("Creating a new Cluster Role Binding", "ClusterRoleBinding.Name", crb.Name)
+	// 	err = r.Create(ctx, crb)
+	// 	if err != nil {
+	// 		logger.Error(err, "Failed to create new Cluster Role Binding", "ClusterRoleBinding.Name", crb.Name)
+	// 		// return ctrl.Result{}, err
+	// 	}
+	// 	// Cluster Role Binding created successfully - return and requeue
+	// 	return ctrl.Result{Requeue: true}, nil
+	// } else if err != nil {
+	// 	logger.Error(err, "Failed to get Cluster Role Binding")
+	// 	return ctrl.Result{}, err
+	// }
 
 	// Check if deployment already exists, if not create a new one
 	deploy := &appsv1.Deployment{}
@@ -92,23 +149,90 @@ func (r *ReaperReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		err = r.Create(ctx, dep)
 		if err != nil {
 			logger.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
-			return ctrl.Result{}, err
+			// return ctrl.Result{}, err
 		}
 		// Deployment created successfully - return and requeue
 		return ctrl.Result{Requeue: true}, nil
 	} else if err != nil {
 		logger.Error(err, "Failed to get Deployment")
-		return ctrl.Result{}, err
+		// return ctrl.Result{}, err
 
 	}
 
+	webDeploy := &appsv1.Deployment{}
+	err = r.Get(ctx, types.NamespacedName{Name: "kubescrub-web", Namespace: Namespace}, webDeploy)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new deployment
+		dep := r.deploymentForKubescrubWeb(kubescrub)
+		logger.Info("Creating a new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+		err = r.Create(ctx, dep)
+		if err != nil {
+			logger.Error(err, "Failed to create new Deployment", "Deployment.Namespace", dep.Namespace, "Deployment.Name", dep.Name)
+			// return ctrl.Result{}, err
+		}
+		// Deployment created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get Deployment")
+		// return ctrl.Result{}, err
+	}
+
 	// Check on the service resources
+	svc := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: Name, Namespace: Namespace}, svc)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new service
+		svc := r.serviceForKubescrub(kubescrub)
+		logger.Info("Creating a new Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+		err = r.Create(ctx, svc)
+		if err != nil {
+			logger.Error(err, "Failed to create new Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+			// return ctrl.Result{}, err
+		}
+		// Service created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get Service")
+		// return ctrl.Result{}, err
+	}
 
-	// check on the service account resource
+	// check on web service
+	webSvc := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: "kubescrub-web", Namespace: Namespace}, webSvc)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new service
+		svc := r.serviceForKubescrubWeb(kubescrub)
+		logger.Info("Creating a new Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+		err = r.Create(ctx, svc)
+		if err != nil {
+			logger.Error(err, "Failed to create new Service", "Service.Namespace", svc.Namespace, "Service.Name", svc.Name)
+			// return ctrl.Result{}, err
+		}
+		// Service created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get Service")
+		// return ctrl.Result{}, err
+	}
 
-	// check on the clusterrole resource
-
-	// check on the clusterrolebinding resources
+	// ingress resources
+	ingress := &networkingv1.Ingress{}
+	err = r.Get(ctx, types.NamespacedName{Name: Name, Namespace: Namespace}, ingress)
+	if err != nil && errors.IsNotFound(err) {
+		// Define a new ingress
+		ingress := r.ingressForKubescrub(kubescrub)
+		logger.Info("Creating a new Ingress", "Ingress.Namespace", ingress.Namespace, "Ingress.Name", ingress.Name)
+		err = r.Create(ctx, ingress)
+		if err != nil {
+			logger.Error(err, "Failed to create new Ingress", "Ingress.Namespace", ingress.Namespace, "Ingress.Name", ingress.Name)
+			// return ctrl.Result{}, err
+		}
+		// Ingress created successfully - return and requeue
+		return ctrl.Result{Requeue: true}, nil
+	} else if err != nil {
+		logger.Error(err, "Failed to get Ingress")
+		// return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -239,7 +363,7 @@ func (r *ReaperReconciler) serviceForKubescrub(k *infrav1alpha1.Reaper) *corev1.
 	ctrl.SetControllerReference(k, svc, r.Scheme)
 	return svc
 }
-func (r *ReaperReconciler) clusterRoleForKubeScrub(k *infrav1alpha1.Reaper) *rbacv1.ClusterRole {
+func (r *ReaperReconciler) clusterRoleForKubescrub(k *infrav1alpha1.Reaper) *rbacv1.ClusterRole {
 	ls := labelsForKubescrub(k.Name)
 	cr := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -250,26 +374,27 @@ func (r *ReaperReconciler) clusterRoleForKubeScrub(k *infrav1alpha1.Reaper) *rba
 		Rules: []rbacv1.PolicyRule{
 			{
 				APIGroups: []string{""},
-				Resources: []string{"pods", "nodes"},
-				Verbs:     []string{"get", "list", "watch", "delete"},
+				Resources: []string{"pods", "configmaps"},
+				Verbs:     []string{"get", "list", "watch"},
 			},
 		},
 	}
 	ctrl.SetControllerReference(k, cr, r.Scheme)
 	return cr
 }
-func (r *ReaperReconciler) serviceAccountForKubescrub(k *infrav1alpha1.Reaper) *corev1.ServiceAccount {
-	ls := labelsForKubescrub(k.Name)
-	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      Name,
-			Namespace: Namespace,
-			Labels:    ls,
-		},
-	}
-	ctrl.SetControllerReference(k, sa, r.Scheme)
-	return sa
-}
+
+//	func (r *ReaperReconciler) serviceAccountForKubescrub(k *infrav1alpha1.Reaper) *corev1.ServiceAccount {
+//		ls := labelsForKubescrub(k.Name)
+//		sa := &corev1.ServiceAccount{
+//			ObjectMeta: metav1.ObjectMeta{
+//				Name:      Name,
+//				Namespace: Namespace,
+//				Labels:    ls,
+//			},
+//		}
+//		ctrl.SetControllerReference(k, sa, r.Scheme)
+//		return sa
+//	}
 func (r *ReaperReconciler) deploymentForKubescrubWeb(k *infrav1alpha1.Reaper) *appsv1.Deployment {
 	ls := labelsForKubescrub(k.Name + "-web")
 	replicas := int32(1)
@@ -291,7 +416,7 @@ func (r *ReaperReconciler) deploymentForKubescrubWeb(k *infrav1alpha1.Reaper) *a
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:           "docker.io/caseywylie/kubescrub-ui:0.0.1",
+						Image:           "docker.io/cmwylie19/kubescrub-ui:0.0.1",
 						ImagePullPolicy: corev1.PullAlways,
 						Name:            "kubescrub-web",
 						Ports: []corev1.ContainerPort{{
@@ -327,7 +452,7 @@ func (r *ReaperReconciler) deploymentForKubescrub(k *infrav1alpha1.Reaper) *apps
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Image:           "docker.io/caseywylie/kubescrub:v0.0.1",
+						Image:           "docker.io/cmwylie19/kubescrub:0.0.1",
 						ImagePullPolicy: corev1.PullAlways,
 						Name:            "kubescrub",
 						ReadinessProbe: &corev1.Probe{
@@ -357,7 +482,7 @@ func (r *ReaperReconciler) deploymentForKubescrub(k *infrav1alpha1.Reaper) *apps
 							PeriodSeconds:       5,
 						},
 
-						Command: []string{"./kubescrub", "serve", "-p", "8080", "--theme", k.Spec.Theme, "--watch", k.Spec.Resources, "--namespaces", k.Spec.Namespaces, "--poll", k.Spec.Poll, "--pollInterval", k.Spec.PollInterval},
+						Command: []string{"./kubescrub", "serve", "-p", "8080", "--theme", k.Spec.Theme, "--watch", k.Spec.Resources, "--namespaces", k.Spec.Namespaces, "--poll", k.Spec.Poll, "--poll-interval", k.Spec.PollInterval},
 						Ports: []corev1.ContainerPort{{
 							ContainerPort: 80,
 							Name:          "http",

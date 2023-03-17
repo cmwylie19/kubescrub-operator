@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: kubescrub-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubescrub
+subjects:
+- kind: ServiceAccount
+  name: kubescrub-operator-kubescrub
+  namespace: kubescrub-operator-system

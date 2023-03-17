@@ -1,0 +1,15 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: kubescrub
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - configmaps
+  - secrets
+  verbs:
+  - list
+  - get

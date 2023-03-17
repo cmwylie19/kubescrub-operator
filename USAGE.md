@@ -60,13 +60,54 @@ EOF
 ```
 
 
-Deploy the operator depedencies:
+_This will deploy the kubescrub operator and all of the depedencies, which include NGINX Ingress dependencies._
 
 ```bash
 make deploy
 ```
 
-_This will deploy the kubescrub operator and all of the depedencies, which include NGINX Ingress dependencies._
+Wait for the operator's controller-manager deployment to become ready:
+
+```bash
+kubectl wait --for=condition=Ready pod -l control-plane=controller-manager -n kubescrub-operator-system --timeout=180s
+```
+Set our context to the `kubescrub-operator-system` namespace
+
+```bash
+kubectl config set-context $(kubectl config current-context) --namespace=kubescrub-operator-system
+```
+
+You may choose to follow the logs in one terminal of the operator controller-manager:
+
+```bash
+k logs -l control-plane=controller-manager -f 
+```
+
+
+Create an instance of the `Kubescrub` operator running the `dark` theme, looking for `ConfigMaps, ServiceAccounts, and Secrets` in namespaces `default, ingress-nginx, and kube-system` that is polling for updates every 5 seconds.
+
+```bash
+kubectl apply -f -<<EOF
+apiVersion: infra.caseywylie.io/v1alpha1
+kind: Reaper
+metadata:
+  labels:
+    app.kubernetes.io/name: reaper
+    app.kubernetes.io/instance: reaper-sample
+    app.kubernetes.io/part-of: kubescrub-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: kubescrub-operator
+  name: carolina
+spec:
+  theme: dark
+  resources: "ConfigMap,Secret,ServiceAccount"
+  namespaces: "default,ingress-nginx,kube-system"
+  poll: "true"
+  pollInterval: "5"
+EOF
+```
+
+Go to [localhost:8080](http://localhost:8080) and you can see the frontend in action
 
 ## Sites
 
