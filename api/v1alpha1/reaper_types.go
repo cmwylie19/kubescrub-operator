@@ -29,18 +29,18 @@ type ReaperSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +optional
-	// +kubebuilder:default:=true
-	Poll bool `json:"poll,omitempty"`
+	// +kubebuilder:default:="true"
+	Poll string `json:"poll,omitempty"`
 
 	// +optional
-	// +kubebuilder:default:=5
-	PollInterval int `json:"pollInterval,omitempty"`
+	// +kubebuilder:default:="5"
+	PollInterval string `json:"pollInterval,omitempty"`
 
 	// +optional
-	Namespaces []string `json:"namespaces,omitempty"`
+	Namespaces string `json:"namespaces,omitempty"`
 
 	// +optional
-	Resources []string `json:"resources,omitempty"`
+	Resources string `json:"resources,omitempty"`
 
 	// +optional
 	// +kubebuilder:default:="dark"
