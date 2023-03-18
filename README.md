@@ -1,9 +1,11 @@
 # Kubescrub Operator
 
+**Video Demo**  
+[![Video Demo](https://img.youtube.com/vi/AmrmLz01NJM/0.jpg)](https://youtu.be/AmrmLz01NJM?t=5)  
+  
 Kubernetes is a powerful and versatile container orchestration platform that allows organizations to deploy, manage, and scale containerized applications with ease. However, as Kubernetes environments grow in complexity, it can become challenging to keep track of all the resources being used and to ensure that none of them are orphaned or left unused. This is where the Kubescrub app comes in handy.
 
-Kubescrub is an intelligent application that makes educated predictions about whether resources in a Kubernetes cluster are orphaned or not. With its highly configurable nature, Kubescrub can be tailored to meet the specific needs of an individual or organization. Users can choose the theme, polling options, polling intervals, and specify which resources and namespaces to watch. 
-
+Kubescrub is an intelligent application that makes educated predictions about whether resources in a Kubernetes cluster are orphaned or not. With its highly configurable nature, Kubescrub can be tailored to meet the specific needs of an individual or organization. Users can choose the theme, polling options, polling intervals, and specify which resources and namespaces to watch.
 
 _This operator deploys the kubescrub application (written last week over a few days), consisting of a React frontend and a Go backend. See the [usage](#usage) section for configuration options._
 
@@ -30,18 +32,17 @@ This operator installs and deploys:
 
 ## Usage
 
-| Name         | Type   | Description                                                   | Values                                 | Optional                                               |
-| ------------ | ------ | ------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------ |
-| [Poll](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L35)         | string | Frontend polls backend for updates                            | "true", "false"                            | true, default to false                                  |
-| [PollInterval](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L36) | string | Interval that frontend queries backend for updates in seconds | "5", "60"                              | true, defaults to 60 seconds                            |
-| [Namespaces](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L37)   | string | Namespaces to watch for orphaned resources                    | "default, kube-system, kube-public"    | true, defaults "kybe-system, default"                                  |
+| Name                                                                                                                                 | Type   | Description                                                   | Values                                 | Optional                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ------ | ------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------------ |
+| [Poll](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L35)         | string | Frontend polls backend for updates                            | "true", "false"                        | true, default to false                                 |
+| [PollInterval](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L36) | string | Interval that frontend queries backend for updates in seconds | "5", "60"                              | true, defaults to 60 seconds                           |
+| [Namespaces](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L37)   | string | Namespaces to watch for orphaned resources                    | "default, kube-system, kube-public"    | true, defaults "kybe-system, default"                  |
 | [Resources](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L39)    | string | types of resources to watch                                   | "ConfigMaps, ServiceAccounts, Secrets" | true, defaults to ConfigMaps, ServiceAccounts, Secrets |
 | [Theme](https://github.com/cmwylie19/KubeScrub/blob/4ce1dc3723f53d693227595a2f1c3b4507d5e88b/server/cmd/kubescrub/server.go#L38)        | string | Dark or light theme for the frontend                          | "dark", "light"                        | "dark" (defaults to dark)                              |
 
 ## Prereqs
 
 _You need [Kind](https://kind.sigs.k8s.io/) to run this demo_. We will configure the kind cluster to map containerPort 31469 to hostPort 8080, which means we can use port 8080 of our laptop to access 31469 in the cluster. All communication and routing is done through the Kubernetes Ingress. Port 31469 is the nodePort of the `ingress-nginx-controller` service. The operator deploys NGINX Ingress depedencies at install time through a **[Job](https://github.com/cmwylie19/kubescrub-operator/blob/main/config/manager/manager.yaml#L762) and deploys ingress resources at runtime in the reconcile loop.
-
 
 **The raw manifests for the NGINX Ingress controller are mounted in a [configmap](https://github.com/cmwylie19/kubescrub-operator/blob/main/config/manager/manager.yaml#L108) fromFile. The configmap is mounted as a [volume](https://github.com/cmwylie19/kubescrub-operator/blob/main/config/manager/manager.yaml#L772) in the job. The job does a `kubectl create/apply -f`. This is a prereq to install the `nginx` ingressClass
 
@@ -52,7 +53,7 @@ _In this tutorial, we will deploy the Kubescrub operator and demonstrate the usa
 Spin up the kind cluster:
 
 ```bash
-cat <<EOF | kind create cluster --config=-
+cat <<EOF | kind create cluster --name=demo --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -91,6 +92,7 @@ kubectl get svc/ingress-nginx-controller -n ingress-nginx -o 'custom-columns=POR
 ```
 
 output
+
 ```bash
 PORT    TYPE
 31469   NodePort
@@ -101,7 +103,6 @@ Set the context to the `kubescrub-operator-system` namespace
 ```bash
 kubectl config set-context $(kubectl config current-context) --namespace=kubescrub-operator-system
 ```
-
 
 Create an instance of the `Kubescrub` operator running the `dark` theme, looking for `ConfigMaps, ServiceAccounts, and Secrets` in namespaces `default, ingress-nginx, and kube-system` that is polling for updates every 5 seconds.
 
@@ -129,6 +130,7 @@ Wait for the application to become ready:
 kubectl wait --for=condition=Ready pod -l kubescrub_cr=carolina --timeout=180s
 kubectl wait --for=condition=Ready pod -l kubescrub_cr=carolina-web --timeout=180s
 ```
+
 Go to [localhost:8080](http://localhost:8080) and you can see the frontend in action
 ![kubescrub.png](images/kubescrub.png)
 
@@ -287,12 +289,11 @@ This app itself is not 100% accurate. It makes educated guesses based on if the 
 Since this is just a kind cluster, we can delete the environment
 
 ```bash
-kind delete cluster --name=kind
+kind delete cluster --name=demo
 ```
-
 
 ## Sites
 
--[NGINX Ingress](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)
+- [NGINX Ingress](https://kubernetes.github.io/ingress-nginx/deploy/#quick-start)
 
 [top](#kubescrub-operator)
